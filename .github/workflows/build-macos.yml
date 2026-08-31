@@ -1,0 +1,53 @@
+name: Build macOS App
+
+on:
+  workflow_dispatch:  # 允许手动触发
+  push:
+    tags:
+      - 'v*'          # 推送 v1.0 等标签时自动触发
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install FFmpeg
+        run: brew install ffmpeg
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller openai-whisper moviepy transformers torch
+
+      - name: Build .app with PyInstaller
+        run: |
+          pyinstaller \
+            --windowed \
+            --name "视频双语字幕生成器" \
+            --hidden-import=whisper \
+            video_translator_portable.py
+
+      - name: Fix Tkinter for macOS bundle (optional but recommended)
+        run: |
+          # 确保 .app 结构正确
+          ls -R dist/
+
+      - name: Create ZIP for distribution
+        run: |
+          cd dist
+          zip -r "../视频双语字幕生成器-macOS.zip" "视频双语字幕生成器.app"
+
+      - name: Upload to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: 视频双语字幕生成器-macOS.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
