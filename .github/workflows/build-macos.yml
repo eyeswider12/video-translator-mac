@@ -1,7 +1,7 @@
 name: Build macOS App
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
@@ -23,6 +23,12 @@ jobs:
           export HOMEBREW_NO_REQUIRE_TAP_TRUST=1
           brew install ffmpeg
 
+      - name: Copy FFmpeg binaries to project root
+        run: |
+          cp $(which ffmpeg) ./ffmpeg
+          cp $(which ffprobe) ./ffprobe
+          chmod +x ffmpeg ffprobe
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
@@ -34,6 +40,8 @@ jobs:
             --windowed \
             --name "VideoTranslator" \
             --hidden-import=whisper \
+            --add-binary "ffmpeg:." \
+            --add-binary "ffprobe:." \
             video_translator_portable.py
 
       - name: Create ZIP for distribution
